@@ -1,0 +1,12 @@
+import requests
+#staffuser staff@gmail.com
+staff_refresh_token="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ0b2tlbl90eXBlIjoicmVmcmVzaCIsImV4cCI6MTc1MTY4OTkwMiwiaWF0IjoxNzUxMDg1MTAyLCJqdGkiOiJkNjQ1ZWI5ZDMzOTg0YmE3OGNhNWRkMDhkZjhkNjU1MiIsInVzZXJfaWQiOjl9.ZBauFeRXgz3NSkzmGsAxpGVxvW4C5nzIVz8nlGYevO8"
+
+user_refresh_token="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ0b2tlbl90eXBlIjoicmVmcmVzaCIsImV4cCI6MTc1MTY5MDEwNSwiaWF0IjoxNzUxMDg1MzA1LCJqdGkiOiI2OTk3NGExMGUzYTI0ZGE4YjI4Njk2NWJlNDJmNTU0MiIsInVzZXJfaWQiOjZ9.BwZSMnDHHlKTSvcu_TeAXC76aYGk20bsA4uu4wG0ayk"
+url="http://127.0.0.1:8000/api/token/refresh/"
+data={
+    'refresh':staff_refresh_token
+}
+
+response = requests.post(url,data=data)
+print(response.json())
