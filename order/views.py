@@ -234,7 +234,7 @@ def update_item(request,item_id):
             if serializer.is_valid():
                 serializer.save()
                 item.order.update_total()
-                return Response({"message":f"Item updated to {serializer.data}",'total_price':item.order.total_price})
+                return Response({"item":serializer.data,'total_price':item.order.total_price})
             else:
                 return Response({"error":serializer.errors})
         else:
