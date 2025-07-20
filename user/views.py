@@ -35,7 +35,7 @@ class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
         except AuthenticationFailed as e:
             print("raised")
             cache.set(device_key,attempts+1,timeout=self.BLOCK_TIME_SECONDS)
-            raise AuthenticationFailed(f"Invalid Credentials ({5-(attempts+1)}) attempts remaining")
+            raise AuthenticationFailed(f"Invalid credentials ({5-(attempts+1)}) attempts remaining")
         print("proceeding")
         cache.delete(device_key)
         data['role']=self.user.role
