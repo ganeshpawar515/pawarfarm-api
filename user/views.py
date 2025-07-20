@@ -28,14 +28,14 @@ class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
         attempts=cache.get(device_key,0)
 
         if attempts>=self.MAX_ATTEMPTS:
-            raise AuthenticationFailed("Too many login attepts")
+            raise AuthenticationFailed("Too many login attempts retry after some time")
         try:
             data=super().validate(attrs)
             print("passed")
         except AuthenticationFailed as e:
             print("raised")
             cache.set(device_key,attempts+1,timeout=self.BLOCK_TIME_SECONDS)
-            raise e
+            raise AuthenticationFailed(f"Invalid Credentials ({5-(attempts+1)}) attempts remaining")
         print("proceeding")
         cache.delete(device_key)
         data['role']=self.user.role
