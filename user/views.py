@@ -4,16 +4,43 @@ from rest_framework.permissions import IsAuthenticated,IsAdminUser
 from rest_framework import serializers
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 from rest_framework_simplejwt.views import TokenObtainPairView
+from rest_framework.exceptions import AuthenticationFailed
+
 from .models import User
 from django.core.mail import send_mail
 from rest_framework import status
+from django.core.cache import cache
 # Create your views here.
 
 class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
+    MAX_ATTEMPTS=5
+    BLOCK_TIME_SECONDS=600
+    def get_device_key(self,request):
+        print("device key called")
+        ip = request.META.get('HTTP_X_FORWARDED_FOR',request.META.get("REMOTE_ADDR"))
+        user_agent = request.META.get("HTTP_USER_AGENT","unknown")
+        return f"login attempts:{ip}:{user_agent}"
     def validate(self,attrs):
-        data=super().validate(attrs)
+        print("validate called")
+        request=self.context.get('request')
+        device_key=self.get_device_key(request)
+
+        attempts=cache.get(device_key,0)
+
+        if attempts>=self.MAX_ATTEMPTS:
+            raise AuthenticationFailed("Too many login attepts")
+        try:
+            data=super().validate(attrs)
+            print("passed")
+        except AuthenticationFailed as e:
+            print("raised")
+            cache.set(device_key,attempts+1,timeout=self.BLOCK_TIME_SECONDS)
+            raise e
+        print("proceeding")
+        cache.delete(device_key)
         data['role']=self.user.role
         return data
+    
 class CustomTokenObtainPairView(TokenObtainPairView):
     serializer_class=CustomTokenObtainPairSerializer
 @api_view(["GET"])

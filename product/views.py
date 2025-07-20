@@ -4,6 +4,7 @@ from rest_framework import serializers
 from .models import Product
 from rest_framework.permissions import IsAuthenticated
 from user.permissions import IsStaffUser
+from django.core.cache import cache
 # Create your views here.
 
 
@@ -32,11 +33,14 @@ def create_product(request):
 
 @api_view(["GET"])
 def get_products(request):
-    products=Product.objects.filter(is_available=True)
-    serializer= ProductSerializer(products,many=True, context={'request': request})
+    products=cache.get("product_list")
+    if not products:
+        products=Product.objects.filter(is_available=True)
+        products= ProductSerializer(products,many=True, context={'request': request}).data
+        cache.set("product_list",products,timeout=60*5)
     return Response({"success":True,
         "message":"Products fetched successfully"
-        ,"data":serializer.data},status=200)
+        ,"data":products},status=200)
 
 @api_view(["GET"])
 def get_product_detail(request,pk):
