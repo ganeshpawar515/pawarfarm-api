@@ -12,6 +12,11 @@ from rest_framework import status
 from django.core.cache import cache
 # Create your views here.
 
+@api_view(["GET"])
+def get_live(request):
+    return Response({"success":"Application live"})
+
+
 class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
     MAX_ATTEMPTS=5
     BLOCK_TIME_SECONDS=600

@@ -20,7 +20,8 @@ staticfiles/
 local_settings.py
 .env
 .env.*
-
+celery.py
+tasks.py
 
 # Virtualenv
 env/
