@@ -141,6 +141,13 @@ def cancel_order(request,order_id):
 @api_view(["POST"])
 @permission_classes([IsAuthenticated])
 def create_order(request):
+    print(request.user)
+    print(request.user.is_email_verified)
+    print(not request.user.is_email_verified)
+    if  not request.user.is_email_verified:
+        print("Here")
+        raise AuthenticationFailed("Verify Email to place order")
+    print("bad news")
     data=request.data.copy()
     data['user']=request.user.id
     items=data.pop('items',[])
