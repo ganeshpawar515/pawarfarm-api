@@ -10,8 +10,17 @@ from .models import User
 from django.core.mail import send_mail
 from rest_framework import status
 from django.core.cache import cache
+import environ
+from pathlib import Path
+import os
+from django.conf import settings
 # Create your views here.
+env = environ.Env(
+    DEBUG=(bool, False)
+)
 
+# Read .env file
+environ.Env.read_env(os.path.join(settings.BASE_DIR, '.env'))
 @api_view(["GET"])
 def get_live(request):
     return Response({"success":"Application live"})
@@ -140,7 +149,7 @@ def get_email_otp(request):
     send_mail(
         subject="verify your email",
         message=f"Your OTP is {otp}",
-        from_email="smarthomesystem515",
+        from_email=settings.EMAIL_HOST_USER,
         recipient_list=[request.user.email],
         fail_silently=False
     )
