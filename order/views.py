@@ -5,8 +5,10 @@ from rest_framework.permissions import IsAuthenticated,IsAdminUser
 from .models import Order,OrderItem
 from user.permissions import IsStaffUser
 from django.core.exceptions import ValidationError
-
-
+from rest_framework.exceptions import AuthenticationFailed
+from django.core.mail import send_mail
+import random
+import string
 @api_view(["GET"])
 def hello(request):
     return Response({"message Hello"})
@@ -41,7 +43,67 @@ class OrderSerializer(serializers.ModelSerializer):
     def get_username(self,obj):
         return obj.user.username if obj.user else None
 
+def generate_otp():
+    return ''.join(random.choices(string.digits, k=6))
 
+
+@api_view(["POST"])
+@permission_classes([IsAuthenticated])
+def generate_delivery_otp(request, order_id):
+    try:
+        order = Order.objects.get(id=order_id, assigned_driver=request.user)
+    except Order.DoesNotExist:
+        return Response({"error": "Order not found or not assigned to you"}, status=404)
+
+    if order.status == "delivered":
+        return Response({"error": "Order already delivered"}, status=400)
+    if order.status == "cancelled":
+        return Response({"error": "Order is cancelled"}, status=400)
+    otp = generate_otp()
+    order.otp_code = otp
+    order.otp_created_at = timezone.now()
+    order.save()
+
+    # ✅ Send Email to Customer
+    send_mail(
+        subject="Your Delivery OTP",
+        message=f"Your OTP for delivery confirmation is: {otp}",
+        from_email="smarthomesystem515",
+        recipient_list=[order.user.email],
+        fail_silently=False
+    )
+
+    return Response({"message": "OTP sent to customer's email ✅"})
+
+
+@api_view(["POST"])
+@permission_classes([IsAuthenticated])
+def confirm_delivery_otp(request, order_id):
+    entered_otp = request.data.get("otp")
+
+    try:
+        order = Order.objects.get(id=order_id, assigned_driver=request.user)
+    except Order.DoesNotExist:
+        return Response({"error": "Order not found or not assigned to you"}, status=404)
+
+    if not order.otp_code:
+        return Response({"error": "OTP not generated for this order"}, status=400)
+
+    # ✅ OTP expiry check (10 mins)
+    if timezone.now() > order.otp_created_at + timedelta(minutes=10):
+        return Response({"error": "OTP expired"}, status=400)
+
+    # ✅ OTP match check
+    if order.otp_code != entered_otp:
+        return Response({"error": "Invalid OTP"}, status=400)
+
+    # ✅ Mark success
+    order.status = "delivered"
+    order.is_paid = True
+    order.otp_code = None
+    order.save()
+
+    return Response({"message": "Order successfully delivered ✅"})
 @api_view(["POST"])
 @permission_classes([IsStaffUser])
 def mark_order_paid(request,order_id):
@@ -70,7 +132,8 @@ def get_customer_orders(request):
 def cancel_order(request,order_id):
     try:
         order = Order.objects.get(id=order_id)
-        order.delete()
+        order.status="cancelled"
+        order.save()
         return Response({"message":"Order Deleted Successfully"})
     except Order.DoesNotExist:
         return Response({"error":"Order not found"})
@@ -243,7 +306,20 @@ def update_item(request,item_id):
     except OrderItem.DoesNotExist:
         return Response({"message","Item not found"})
 
-
+@api_view(["POST"])
+@permission_classes([IsAuthenticated])
+def cart_checkout(request):
+    if not request.user.is_email_verified:
+        raise AuthenticationFailed("Verify Email to place order")
+    try:
+        items=Order.objects.filter(user=request.user,status="draft")
+        print(items)
+        for item in items:
+            item.status="pending"
+            item.save()
+        return Response({"message":"orders placed successfully"})
+    except Exception as e:
+        return Response({"error":str(e)})
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAdminUser
 from rest_framework.response import Response
@@ -286,3 +362,27 @@ def order_report(request):
         "total_revenue": float(total_revenue),
         "orders_per_day": orders_per_day,
     })
+class OrderDetailSerializer(serializers.ModelSerializer):
+    items = OrderItemSerializer(many=True, read_only=True)
+    customer_name = serializers.CharField(source="user.username", read_only=True)
+    customer_email = serializers.EmailField(source="user.email", read_only=True)
+    driver_name = serializers.CharField(source="assigned_driver_name", read_only=True)
+    
+    class Meta:
+        model = Order
+        fields = [
+            "id", "customer_name", "customer_email", "driver_name",
+            "status", "created_at", "delivered_at", "payment_mode",
+            "is_paid", "total_price", "items"
+        ]
+
+@api_view(["GET"])
+@permission_classes([IsAdminUser])
+def get_order_detail(request, order_id):
+    try:
+        order = Order.objects.get(id=order_id)
+    except Order.DoesNotExist:
+        return Response({"error": "Order not found"}, status=404)
+
+    serializer = OrderDetailSerializer(order)
+    return Response(serializer.data)

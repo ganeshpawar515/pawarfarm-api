@@ -27,6 +27,9 @@ class Order(models.Model):
     is_paid = models.BooleanField(default=False)
     payment_mode= models.CharField(max_length=30,choices=PAYMENT_CHOICES,blank=True,null=True)
     delivered_at = models.DateTimeField(null=True, blank=True)
+    otp_code = models.CharField(max_length=6, null=True, blank=True)
+    otp_created_at = models.DateTimeField(null=True, blank=True)
+
     class Meta:
         constraints=[
             models.UniqueConstraint(

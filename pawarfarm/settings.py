@@ -55,7 +55,7 @@ SIMPLE_JWT = {
     'ACCESS_TOKEN_LIFETIME': timedelta(hours=24),  # Set your desired time
     'REFRESH_TOKEN_LIFETIME': timedelta(days=7),
     'ROTATE_REFRESH_TOKENS': False,
-    'BLACKLIST_AFTER_ROTATION': True,
+    'BLACKLIST_AFTER_ROTATION': False,
 }
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': (
@@ -120,6 +120,17 @@ DATABASES = {
         'NAME': BASE_DIR / 'db.sqlite3',
     }
 }
+# DATABASES = {
+#     'default': {
+#         'ENGINE': 'django.db.backends.postgresql',
+#         'NAME': 'pawarfarm-db',          # Replace with your DB name
+#         'USER': 'ganesh',                 # Your master username
+#         'PASSWORD': 'Postgres1234',    # Your password
+#         'HOST': 'pawarfarm-db.crs4c6s8mcvj.eu-north-1.rds.amazonaws.com',    # Endpoint from AWS RDS
+#         'PORT': '5432',                  # Default PostgreSQL port
+#     }
+# }
+
 import tempfile
 CACHES = {
     "default": {

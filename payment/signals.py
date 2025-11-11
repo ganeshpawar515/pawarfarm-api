@@ -13,6 +13,5 @@ def create_delivery_payment(sender,instance,created,**kwargs):
                 payment_type='delivery_ride',
                 related_order=instance,
                 amount=(instance.total_price*Decimal('0.05')),
-                status='pending',
-                paid_at=instance.delivered_at,
+                status='pending'
             )
