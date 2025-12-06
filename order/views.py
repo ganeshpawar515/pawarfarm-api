@@ -196,18 +196,28 @@ def get_delivery_orders(request):
 @permission_classes([IsAuthenticated])
 def update_status_delivery(request,order_id):
     try:
-        order=Order.objects.get(id=order_id)
-        if order.status=="delivered" or order.status=="cancelled":
-            return Response({'error':"status update restricted"})
+        order = Order.objects.get(id=order_id, assigned_driver=request.user)
     except Order.DoesNotExist:
-        return Response({"error":"Order not found"})
-    data=request.data.copy()
-    new_status=data.get("status")
-    if new_status=='delivered':
-        order.is_paid=True
-    order.status=new_status
+        return Response({"error": "Order not found or not assigned to you"}, status=404)
+
+    data = request.data.copy()
+    new_status = data.get("status")
+
+    # ✅ Restrict changing to delivered without OTP
+    if new_status == "delivered":
+        return Response(
+            {"error": "Use OTP confirmation to mark as delivered"},
+            status=403
+        )
+
+    if order.status in ["delivered", "cancelled"]:
+        return Response({"error": "Status update restricted"}, status=400)
+
+    order.status = new_status
     order.save()
-    return Response({"message":"updated"})
+
+    return Response({"message": "updated"})
+
     
 
 

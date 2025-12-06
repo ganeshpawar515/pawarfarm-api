@@ -142,6 +142,7 @@ from datetime import timedelta
 @permission_classes([IsAuthenticated])
 def get_email_otp(request):
     print(request.user)
+    print("from",settings.EMAIL_HOST_USER)
     otp=random.randint(1111,9999)
     request.user.email_otp=otp
     request.user.email_otp_created_at=timezone.now()

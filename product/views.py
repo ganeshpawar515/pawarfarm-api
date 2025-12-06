@@ -37,7 +37,7 @@ def get_products(request):
     if not products:
         products=Product.objects.filter(is_available=True)
         products= ProductSerializer(products,many=True, context={'request': request}).data
-        cache.set("product_list",products,timeout=60*5)
+        cache.set("product_list",products,timeout=15)
     return Response({"success":True,
         "message":"Products fetched successfully"
         ,"data":products},status=200)

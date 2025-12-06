@@ -75,7 +75,8 @@ INSTALLED_APPS = [
     'product',
     'order',
     'corsheaders',
-    'rest_framework'
+    'rest_framework',
+    'calory'
 ]
 
 MIDDLEWARE = [

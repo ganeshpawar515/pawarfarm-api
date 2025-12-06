@@ -17,6 +17,6 @@ urlpatterns =[
     path("user/get_email_otp/",get_email_otp),
     path("user/verify_email_otp/",verify_email_otp),
     path("user/list/",get_user_list),
-    path('api/user/<int:user_id>/update/', update_user, name='user-update'),
-    path('api/user/<int:user_id>/delete/', delete_user, name='user-delete')
+    path('user/<int:user_id>/update/', update_user, name='user-update'),
+    path('user/<int:user_id>/delete/', delete_user, name='user-delete')
 ]
