@@ -14,10 +14,164 @@ import environ
 from pathlib import Path
 import os
 from django.conf import settings
+from rest_framework.views import APIView
+from rest_framework.response import Response
+from rest_framework import status
+import requests
+import os
+
+
 # Create your views here.
 env = environ.Env(
     DEBUG=(bool, False)
 )
+
+GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
+
+import requests
+from django.conf import settings
+from rest_framework.decorators import api_view
+from rest_framework.response import Response
+from rest_framework import status
+
+GEMINI_URL = (
+    "https://generativelanguage.googleapis.com/v1beta/"
+     "models/gemini-2.0-flash-001:generateContent"
+)
+
+
+
+import json
+@api_view(["POST"])
+def premium_english_tutor(request):
+    
+    sentence = request.data.get("sentence")
+
+    if not sentence:
+        return Response(
+            {"error": "Sentence is required"},
+            status=status.HTTP_400_BAD_REQUEST
+        )
+
+    prompt = f"""
+Return ONLY valid JSON.
+
+Format:
+{{
+  "correct_sentence": "",
+  "better_sentence": "",
+  "mistakes": [
+    {{
+      "wrong_part": "",
+      "correct_part": "",
+      "reason": ""
+    }}
+  ]
+}}
+
+Sentence:
+"{sentence}"
+"""
+
+    payload = {
+        "contents": [{"parts": [{"text": prompt}]}]
+    }
+
+    try:
+        response = requests.post(
+            f"{GEMINI_URL}?key={settings.GEMINI_API_KEY}",
+            json=payload,
+            headers={"Content-Type": "application/json"},
+            timeout=20
+        )
+    except requests.exceptions.RequestException:
+        return Response(
+            {"error": "Gemini service unreachable"},
+            status=status.HTTP_503_SERVICE_UNAVAILABLE
+        )
+    print("STATUS:", response.status_code)
+    print("BODY:", response.text)
+
+    if response.status_code != 200:
+        return Response(
+            {
+                "error": "Gemini API failed",
+                "details": response.text
+            },
+            status=status.HTTP_502_BAD_GATEWAY
+        )
+
+    try:
+        data = response.json()
+        text = data["candidates"][0]["content"]["parts"][0]["text"]
+        ai_json = json.loads(text)
+    except Exception:
+        return Response(
+            {"error": "Invalid Gemini response"},
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )
+
+    return Response({
+        "input_sentence": sentence,
+        **ai_json,
+        "mistake_count": len(ai_json.get("mistakes", [])),
+        "source": "gemini"
+    })
+
+
+
+class EnglishTutorAPIView(APIView):
+    def post(self, request):
+        sentence = request.data.get("sentence")
+
+        if not sentence:
+            return Response(
+                {"error": "Sentence is required"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        # LanguageTool API
+        url = "https://api.languagetool.org/v2/check"
+        data = {
+            "text": sentence,
+            "language": "en-US"
+        }
+
+        res = requests.post(url, data=data).json()
+        matches = res.get("matches", [])
+
+        mistakes = []
+        corrected_sentence = sentence
+
+        for match in matches:
+            wrong_text = sentence[
+                match["offset"]: match["offset"] + match["length"]
+            ]
+
+            suggestions = [r["value"] for r in match.get("replacements", [])]
+
+            mistakes.append({
+                "wrong_part": wrong_text,
+                "correct_part": suggestions[0] if suggestions else "",
+                "reason": match.get("message"),
+                "suggestions": suggestions
+            })
+
+            if suggestions:
+                corrected_sentence = corrected_sentence.replace(
+                    wrong_text, suggestions[0], 1
+                )
+
+        better_sentence = corrected_sentence  # placeholder (AI later)
+
+        return Response({
+            "input_sentence": sentence,
+            "mistakes": mistakes,
+            "correct_sentence": corrected_sentence,
+            "better_sentence": better_sentence,
+            "fluency_tip": "Practice subject-verb agreement for better fluency.",
+            "mistake_count": len(mistakes)
+        })
 
 # Read .env file
 environ.Env.read_env(os.path.join(settings.BASE_DIR, '.env'))

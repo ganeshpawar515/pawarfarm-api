@@ -17,13 +17,23 @@ def hello(request):
    
 
 class OrderItemSerializer(serializers.ModelSerializer):
+    product_image = serializers.SerializerMethodField()
     class Meta:
         model=OrderItem
-        fields=['id','order','product','product_name','quantity','price']
+        fields=['id','order','product','product_name','quantity','price','product_image']
         read_only_fields=['price']
         extra_kwargs={
             'product':{'required':True,'allow_null':False}
         }
+    def get_product_image(self,obj):
+        print("get ran")
+        request = self.context.get('request')
+        if obj.product.image:
+            image_url = obj.product.image.url
+            return request.build_absolute_uri(image_url) if request else image_url
+
+        return None
+
 class OrderSerializer(serializers.ModelSerializer):
     items=OrderItemSerializer(many=True,read_only=True)
     is_paid=serializers.BooleanField(read_only=True)

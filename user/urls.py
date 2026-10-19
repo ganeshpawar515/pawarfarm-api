@@ -1,12 +1,13 @@
 from rest_framework_simplejwt.views import TokenRefreshView
 from django.urls import path
 from .views import (hello_world,create_user,get_email_otp,verify_email_otp,CustomTokenObtainPairView,
-                    user_profile,get_drivers_list,get_user_list,update_user,delete_user,get_live)
-
-
+                    user_profile,get_drivers_list,get_user_list,update_user,delete_user,get_live,
+                    EnglishTutorAPIView,premium_english_tutor)
 
 
 urlpatterns =[
+     path("english/premium/", premium_english_tutor),
+    path("english/speak-evaluate/", EnglishTutorAPIView.as_view()),
     path('ping/',get_live,name="start-app"),
     path('token/',CustomTokenObtainPairView.as_view(),name='token_obtain_pair'),
     path('token/refresh/',TokenRefreshView.as_view(),name='token_refresh'),
